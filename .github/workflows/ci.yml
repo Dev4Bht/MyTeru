@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DATABASE_URL: postgresql://druksave:druksave@localhost:5432/druksave?schema=public
+  REDIS_URL: redis://localhost:6379
+  NODE_ENV: test
+  API_PORT: 4000
+  API_GLOBAL_PREFIX: api
+  CORS_ORIGINS: http://localhost:3000
+  JWT_ACCESS_SECRET: ci-access-secret-min-32-characters-long
+  JWT_REFRESH_SECRET: ci-refresh-secret-min-32-characters-long
+  SMS_PROVIDER: twilio
+  SMS_DEV_MODE: "true"
+
+jobs:
+  build-lint-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: druksave
+          POSTGRES_PASSWORD: druksave
+          POSTGRES_DB: druksave
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U druksave -d druksave"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @druksave/database prisma:generate
+
+      - name: Apply migrations
+        run: pnpm --filter @druksave/database db:migrate:deploy
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: E2E tests (API)
+        run: pnpm --filter @druksave/api test:e2e
