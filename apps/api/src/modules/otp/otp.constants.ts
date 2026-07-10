@@ -1,4 +1,9 @@
-export const OTP_MESSAGE_BY_PURPOSE: Record<string, (code: string, ttlMinutes: number) => string> = {
+import { OtpPurpose } from "@druksave/database";
+
+export const OTP_MESSAGE_BY_PURPOSE: Record<
+  OtpPurpose,
+  (code: string, ttlMinutes: number) => string
+> = {
   SIGNUP: (code, ttl) =>
     `Your DrukSave verification code is ${code}. It expires in ${ttl} minutes. Do not share this code with anyone.`,
   LOGIN: (code, ttl) =>

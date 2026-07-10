@@ -23,6 +23,9 @@ pnpm-debug.log*
 # testing
 coverage/
 
+# typescript build info
+*.tsbuildinfo
+
 # prisma
 packages/database/generated/
 

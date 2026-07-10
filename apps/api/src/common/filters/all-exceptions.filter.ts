@@ -42,7 +42,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const errorName =
       typeof body === "object" && body !== null && "error" in body
         ? (body as { error: string }).error
-        : HttpStatus[statusCode];
+        : (HttpStatus[statusCode] ?? "Error");
 
     if (!isHttpException || statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(

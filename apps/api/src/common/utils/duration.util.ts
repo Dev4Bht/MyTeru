@@ -11,6 +11,6 @@ export function parseDurationMs(input: string): number {
   if (!match) {
     throw new Error(`Invalid duration format: "${input}"`);
   }
-  const [, value, unit] = match;
-  return Number(value) * UNIT_MS[unit];
+  const [, value, unit] = match as unknown as [string, string, keyof typeof UNIT_MS];
+  return Number(value) * UNIT_MS[unit]!;
 }

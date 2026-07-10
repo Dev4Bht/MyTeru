@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@druksave/database";
 import { PrismaService } from "../../database/prisma.service";
 
 export interface AuditLogEntry {
@@ -19,7 +20,7 @@ export class AuditService {
       data: {
         userId: entry.userId,
         action: entry.action,
-        metadata: entry.metadata,
+        metadata: entry.metadata as Prisma.InputJsonValue | undefined,
         ip: entry.ip,
         userAgent: entry.userAgent,
       },
