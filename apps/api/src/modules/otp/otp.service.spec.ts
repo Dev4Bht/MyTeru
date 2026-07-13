@@ -13,7 +13,6 @@ describe("OtpService", () => {
 
   let prisma: any;
   let configService: any;
-  let redis: any;
   let smsProvider: any;
   let service: OtpService;
 
@@ -22,7 +21,8 @@ describe("OtpService", () => {
       otp: {
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         create: jest.fn().mockResolvedValue({ id: "otp-1" }),
-        findFirst: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null), // no prior OTP, cooldown check passes
+        count: jest.fn().mockResolvedValue(0), // under the hourly limit
         update: jest.fn().mockResolvedValue({}),
       },
       device: {
@@ -30,20 +30,14 @@ describe("OtpService", () => {
       },
     };
     configService = { get: jest.fn((key: string) => config[key]) };
-    redis = {
-      ttl: jest.fn().mockResolvedValue(-2),
-      incr: jest.fn().mockResolvedValue(1),
-      expire: jest.fn().mockResolvedValue(1),
-      set: jest.fn().mockResolvedValue("OK"),
-    };
     smsProvider = { send: jest.fn().mockResolvedValue({ success: true, providerMessageId: "sms-1" }) };
 
-    service = new OtpService(prisma, configService, redis, smsProvider);
+    service = new OtpService(prisma, configService, smsProvider);
   });
 
   describe("generateAndSend", () => {
     it("rejects when still within the resend cooldown", async () => {
-      redis.ttl.mockResolvedValueOnce(42);
+      prisma.otp.findFirst.mockResolvedValueOnce({ createdAt: new Date() });
 
       await expect(
         service.generateAndSend({ phone: "+97517123456", purpose: OtpPurpose.SIGNUP, deviceId: "d1" }),
@@ -53,7 +47,7 @@ describe("OtpService", () => {
     });
 
     it("rejects once the hourly send limit is exceeded", async () => {
-      redis.incr.mockResolvedValueOnce(6);
+      prisma.otp.count.mockResolvedValueOnce(5);
 
       await expect(
         service.generateAndSend({ phone: "+97517123456", purpose: OtpPurpose.SIGNUP, deviceId: "d1" }),
@@ -81,7 +75,6 @@ describe("OtpService", () => {
         "+97517123456",
         expect.stringContaining("DrukSave"),
       );
-      expect(redis.set).toHaveBeenCalledWith("otp:cooldown:SIGNUP:+97517123456", "1", "EX", 60);
       expect(result).toEqual({
         phone: "+97517123456",
         purpose: OtpPurpose.SIGNUP,

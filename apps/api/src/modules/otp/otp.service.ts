@@ -9,16 +9,10 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as argon2 from "argon2";
-import Redis from "ioredis";
 import { OtpPurpose } from "@druksave/database";
 import { PrismaService } from "../../database/prisma.service";
-import { REDIS_CLIENT } from "../../redis/redis.module";
 import { SMS_PROVIDER, SmsProvider } from "../sms/sms-provider.interface";
-import {
-  OTP_MESSAGE_BY_PURPOSE,
-  redisOtpCooldownKey,
-  redisOtpHourlyKey,
-} from "./otp.constants";
+import { OTP_MESSAGE_BY_PURPOSE } from "./otp.constants";
 import { OtpChallengeResponse } from "@druksave/shared";
 
 @Injectable()
@@ -32,7 +26,6 @@ export class OtpService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
     @Inject(SMS_PROVIDER) private readonly smsProvider: SmsProvider,
   ) {
     this.length = this.configService.get<number>("otp.length")!;
@@ -53,22 +46,32 @@ export class OtpService {
   }): Promise<OtpChallengeResponse> {
     const { phone, purpose, deviceId, userId } = params;
 
-    const cooldownKey = redisOtpCooldownKey(phone, purpose);
-    const hourlyKey = redisOtpHourlyKey(phone, purpose);
+    // Rate limiting is backed by Postgres (via the Otp table's own rows)
+    // rather than a cache like Redis, so it works correctly in both a
+    // long-running server and stateless serverless functions, where
+    // in-memory/per-instance state can't be trusted across invocations.
+    const mostRecent = await this.prisma.otp.findFirst({
+      where: { phone, purpose },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
 
-    const cooldownTtl = await this.redis.ttl(cooldownKey);
-    if (cooldownTtl > 0) {
-      throw new HttpException(
-        `Please wait ${cooldownTtl}s before requesting another code.`,
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+    if (mostRecent) {
+      const secondsSinceLastSend = (Date.now() - mostRecent.createdAt.getTime()) / 1000;
+      if (secondsSinceLastSend < this.resendCooldownSeconds) {
+        const remaining = Math.ceil(this.resendCooldownSeconds - secondsSinceLastSend);
+        throw new HttpException(
+          `Please wait ${remaining}s before requesting another code.`,
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
     }
 
-    const hourlyCount = await this.redis.incr(hourlyKey);
-    if (hourlyCount === 1) {
-      await this.redis.expire(hourlyKey, 3600);
-    }
-    if (hourlyCount > this.maxSendsPerHour) {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const sentInLastHour = await this.prisma.otp.count({
+      where: { phone, purpose, createdAt: { gte: oneHourAgo } },
+    });
+    if (sentInLastHour >= this.maxSendsPerHour) {
       throw new HttpException(
         "Too many code requests for this number. Please try again later.",
         HttpStatus.TOO_MANY_REQUESTS,
@@ -112,8 +115,6 @@ export class OtpService {
     if (!result.success) {
       throw new BadRequestException("Failed to send verification code. Please try again.");
     }
-
-    await this.redis.set(cooldownKey, "1", "EX", this.resendCooldownSeconds);
 
     return {
       phone,

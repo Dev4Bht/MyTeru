@@ -1,0 +1,18 @@
+[build]
+  base = "apps/web"
+  publish = ".next"
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @druksave/database prisma:generate && pnpm build"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # prisma generate only needs a syntactically valid connection string at
+  # build time (it doesn't connect to the DB); the real runtime connection
+  # goes through the Neon driver adapter via @netlify/database instead.
+  DATABASE_URL = "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+
+[functions]
+  directory = "../api/netlify/functions"
+  node_bundler = "esbuild"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

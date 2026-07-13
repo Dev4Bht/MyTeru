@@ -13,9 +13,3 @@ export const OTP_MESSAGE_BY_PURPOSE: Record<
   CHANGE_PHONE: (code, ttl) =>
     `Your DrukSave phone verification code is ${code}. It expires in ${ttl} minutes. Do not share this code with anyone.`,
 };
-
-export const redisOtpCooldownKey = (phone: string, purpose: string) =>
-  `otp:cooldown:${purpose}:${phone}`;
-
-export const redisOtpHourlyKey = (phone: string, purpose: string) =>
-  `otp:hourly:${purpose}:${phone}`;

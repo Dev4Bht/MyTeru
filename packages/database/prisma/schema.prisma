@@ -199,11 +199,9 @@ model Otp {
   maxAttempts   Int        @default(5)
   expiresAt     DateTime
   consumedAt    DateTime?
-  lastSentAt    DateTime   @default(now())
-  sendCount     Int        @default(1)
   createdAt     DateTime   @default(now())
 
-  @@index([phone, purpose])
+  @@index([phone, purpose, createdAt])
   @@index([userId])
   @@map("otps")
 }

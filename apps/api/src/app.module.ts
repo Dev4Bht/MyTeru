@@ -5,7 +5,6 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import configuration from "./config/configuration";
 import { validateEnv } from "./config/env.validation";
 import { PrismaModule } from "./database/prisma.module";
-import { RedisModule } from "./redis/redis.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
@@ -32,7 +31,6 @@ import { HealthModule } from "./modules/health/health.module";
       throttlers: [{ ttl: 60_000, limit: 60 }],
     }),
     PrismaModule,
-    RedisModule,
     SmsModule,
     OtpModule,
     AuditModule,
