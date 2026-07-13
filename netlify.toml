@@ -1,6 +1,6 @@
 [build]
   publish = "apps/web/.next"
-  command = "pnpm install --no-frozen-lockfile && pnpm --filter @druksave/database prisma:generate && pnpm build"
+  command = "pnpm install --no-frozen-lockfile && pnpm build"
 
 [build.environment]
   NODE_VERSION = "22"
