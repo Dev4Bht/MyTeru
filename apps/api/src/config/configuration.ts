@@ -1,6 +1,8 @@
 export default () => ({
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: parseInt(process.env.API_PORT ?? "4000", 10),
+  // Render (and most PaaS hosts) assign the port to listen on via PORT;
+  // API_PORT remains the override for local dev / other hosts.
+  port: parseInt(process.env.PORT ?? process.env.API_PORT ?? "4000", 10),
   globalPrefix: process.env.API_GLOBAL_PREFIX ?? "api",
   corsOrigins: (process.env.CORS_ORIGINS ?? "http://localhost:3000")
     .split(",")

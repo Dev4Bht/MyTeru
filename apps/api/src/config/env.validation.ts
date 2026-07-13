@@ -13,8 +13,15 @@ class EnvironmentVariables {
   @IsIn(["development", "test", "production"])
   NODE_ENV!: string;
 
+  // Render (and most PaaS hosts) inject PORT; API_PORT is only used as an
+  // override for local dev / hosts that don't set PORT themselves.
   @IsNumberString()
-  API_PORT!: string;
+  @IsOptional()
+  PORT?: string;
+
+  @IsNumberString()
+  @IsOptional()
+  API_PORT?: string;
 
   @IsString()
   DATABASE_URL!: string;
