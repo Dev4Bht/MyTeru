@@ -11,6 +11,19 @@
 
 [functions]
   directory = "apps/api/netlify/functions"
+  node_bundler = "esbuild"
+  # @nestjs/core references its optional microservices/websockets transports
+  # via lazy, feature-gated `require()` calls (see LazyModuleLoader) even
+  # though this app never uses either — those packages simply aren't
+  # installed. esbuild resolves every require() statically and fails the
+  # whole bundle on them, so they must be excluded rather than bundled; the
+  # calls are never actually reached at runtime for a plain HTTP Nest app.
+  external_node_modules = [
+    "@nestjs/microservices",
+    "@nestjs/microservices/microservices-module",
+    "@nestjs/websockets/socket-module",
+    "class-transformer/storage",
+  ]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
