@@ -1,7 +1,6 @@
 [build]
-  base = "apps/web"
-  publish = ".next"
-  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @druksave/database prisma:generate && pnpm build"
+  publish = "apps/web/.next"
+  command = "corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @druksave/database prisma:generate && pnpm build"
 
 [build.environment]
   NODE_VERSION = "22"
@@ -11,7 +10,7 @@
   DATABASE_URL = "postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
 
 [functions]
-  directory = "../api/netlify/functions"
+  directory = "apps/api/netlify/functions"
   node_bundler = "esbuild"
 
 [[plugins]]
