@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: druksave
       POSTGRES_DB: druksave
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - druksave_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - druksave_redis_data:/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
     image: adminer:latest
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "9091:8080"
     depends_on:
       - postgres
 

@@ -22,6 +22,9 @@ import { HealthModule } from "./modules/health/health.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      // This app is normally started from apps/api (cwd), but the single
+      // shared .env lives at the monorepo root — check both locations.
+      envFilePath: ["../../.env", ".env"],
       load: [configuration],
       validate: validateEnv,
     }),

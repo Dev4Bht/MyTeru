@@ -31,7 +31,10 @@ pnpm dev                      # runs apps/api and apps/web in parallel via Turbo
 - API: http://localhost:4000/api
 - Swagger docs: http://localhost:4000/api/docs
 - Web: http://localhost:3000
-- Adminer (DB inspector): http://localhost:8080
+- Adminer (DB inspector): http://localhost:8082 (server: `postgres`, user/pass: `druksave`)
+
+Note: the dev Postgres/Redis containers are published on 5433/6380 (not the
+5432/6379 defaults) to avoid clashing with other local services.
 
 Seeded dev users (password `DrukSave@123` for all): `+97517123456` (Tashi
 Dema, government employee), `+97517654321` (Karma Wangdi, taxi driver),

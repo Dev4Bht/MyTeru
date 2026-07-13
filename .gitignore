@@ -34,3 +34,4 @@ packages/database/generated/
 *.pem
 .vscode/*
 !.vscode/extensions.json
+.claude/
