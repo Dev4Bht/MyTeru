@@ -10,7 +10,7 @@ services:
     plan: free
     region: singapore
     buildCommand: pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=@druksave/api
-    startCommand: node apps/api/dist/main.js
+    startCommand: node apps/api/dist/src/main.js
     preDeployCommand: pnpm --filter @druksave/database db:migrate:deploy
     autoDeploy: true
     envVars:
