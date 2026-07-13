@@ -23,6 +23,10 @@
     "@nestjs/microservices/microservices-module",
     "@nestjs/websockets/socket-module",
     "class-transformer/storage",
+    # argon2 ships a prebuilt native .node addon that esbuild can't inline;
+    # externalizing makes Netlify's packager copy the real node_modules/argon2
+    # (including the binary) into the function bundle instead.
+    "argon2",
   ]
 
 [[plugins]]
