@@ -6,21 +6,13 @@ export interface AuthTokens {
 
 export interface AuthenticatedUser {
   id: string;
-  phone: string;
-  email: string | null;
+  email: string;
   fullName: string;
+  avatarUrl: string | null;
   role: "USER" | "SUPPORT" | "ADMIN";
-  isPhoneVerified: boolean;
 }
 
 export interface AuthResponse {
   user: AuthenticatedUser;
   tokens: AuthTokens;
-}
-
-export interface OtpChallengeResponse {
-  phone: string;
-  purpose: "SIGNUP" | "LOGIN" | "PASSWORD_RESET" | "CHANGE_PHONE";
-  expiresInSeconds: number;
-  resendAvailableInSeconds: number;
 }

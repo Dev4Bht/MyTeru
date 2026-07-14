@@ -1,65 +1,47 @@
-import * as argon2 from "argon2";
-import { BadRequestException, ConflictException, ForbiddenException, UnauthorizedException } from "@nestjs/common";
-import { OtpPurpose, Role } from "@druksave/database";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
-  const config: Record<string, number> = {
-    "argon2.memoryCost": 19456,
-    "argon2.timeCost": 2,
-    "argon2.parallelism": 1,
-    "login.maxAttempts": 5,
-    "login.lockoutMinutes": 15,
-    "otp.ttlSeconds": 300,
-    "otp.resendCooldownSeconds": 60,
-  };
-
-  let prisma: any;
-  let configService: any;
   let usersService: any;
   let devicesService: any;
   let sessionsService: any;
   let auditService: any;
-  let otpService: any;
+  let googleAuthService: any;
   let tokensService: any;
   let service: AuthService;
 
   const ctx = { ip: "127.0.0.1", userAgent: "jest" };
 
+  const googleProfile = {
+    googleId: "google-sub-123",
+    email: "tashi.dema@example.bt",
+    fullName: "Tashi Dema",
+    avatarUrl: "https://example.com/avatar.jpg",
+  };
+
+  const dbUser = {
+    id: "user-1",
+    email: googleProfile.email,
+    googleId: googleProfile.googleId,
+    role: "USER",
+    profile: { fullName: googleProfile.fullName, avatarUrl: googleProfile.avatarUrl },
+  };
+
   beforeEach(() => {
-    prisma = {
-      user: { update: jest.fn().mockResolvedValue({}) },
-    };
-    configService = { get: jest.fn((key: string) => config[key]) };
     usersService = {
-      findByPhone: jest.fn(),
-      findByIdOrThrow: jest.fn(),
-      create: jest.fn(),
-      updatePassword: jest.fn().mockResolvedValue({}),
-      updatePhone: jest.fn().mockResolvedValue({}),
-      recordFailedLogin: jest.fn().mockResolvedValue(undefined),
-      resetFailedLogins: jest.fn().mockResolvedValue({}),
+      findOrCreateFromGoogle: jest.fn().mockResolvedValue(dbUser),
+      findByIdOrThrow: jest.fn().mockResolvedValue(dbUser),
+      recordLogin: jest.fn().mockResolvedValue(undefined),
     };
     devicesService = {
-      isKnownDevice: jest.fn(),
       registerOrTouch: jest.fn().mockResolvedValue({ id: "device-1" }),
     };
     sessionsService = {
       create: jest.fn().mockResolvedValue({ sessionId: "session-1", rawToken: "raw-refresh-token" }),
       rotate: jest.fn(),
       revokeByRawToken: jest.fn().mockResolvedValue(undefined),
-      revokeAll: jest.fn().mockResolvedValue(undefined),
     };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
-    otpService = {
-      generateAndSend: jest.fn().mockResolvedValue({
-        phone: "+97517123456",
-        purpose: OtpPurpose.SIGNUP,
-        expiresInSeconds: 300,
-        resendAvailableInSeconds: 60,
-      }),
-      verify: jest.fn(),
-    };
+    googleAuthService = { verifyIdToken: jest.fn().mockResolvedValue(googleProfile) };
     tokensService = {
       signAccessToken: jest.fn().mockReturnValue({
         accessToken: "access-token",
@@ -68,156 +50,91 @@ describe("AuthService", () => {
     };
 
     service = new AuthService(
-      prisma,
-      configService,
       usersService,
       devicesService,
       sessionsService,
       auditService,
-      otpService,
+      googleAuthService,
       tokensService,
     );
   });
 
-  describe("signup", () => {
-    it("rejects mismatched passwords before touching the database", async () => {
-      await expect(
-        service.signup(
-          {
-            fullName: "Tashi Dema",
-            phone: "+97517123456",
-            password: "SecurePass123",
-            confirmPassword: "Different123",
-            deviceId: "d1",
-          },
-          ctx,
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
+  describe("loginWithGoogle", () => {
+    const dto = { idToken: "fake-id-token", deviceId: "d1" };
 
-      expect(usersService.findByPhone).not.toHaveBeenCalled();
+    it("verifies the Google ID token before doing anything else", async () => {
+      await service.loginWithGoogle(dto, ctx);
+
+      expect(googleAuthService.verifyIdToken).toHaveBeenCalledWith("fake-id-token");
     });
 
-    it("rejects signup for a phone that is already verified", async () => {
-      usersService.findByPhone.mockResolvedValueOnce({ id: "user-1", isPhoneVerified: true });
+    it("propagates a rejected/invalid Google token without creating a session", async () => {
+      googleAuthService.verifyIdToken.mockRejectedValueOnce(new Error("invalid token"));
 
-      await expect(
-        service.signup(
-          {
-            fullName: "Tashi Dema",
-            phone: "+97517123456",
-            password: "SecurePass123",
-            confirmPassword: "SecurePass123",
-            deviceId: "d1",
-          },
-          ctx,
-        ),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.loginWithGoogle(dto, ctx)).rejects.toThrow("invalid token");
+      expect(sessionsService.create).not.toHaveBeenCalled();
     });
 
-    it("creates an unverified user and sends a SIGNUP OTP on the happy path", async () => {
-      usersService.findByPhone.mockResolvedValueOnce(null);
-      usersService.create.mockResolvedValueOnce({ id: "user-1" });
+    it("finds-or-creates the user from the verified Google profile", async () => {
+      await service.loginWithGoogle(dto, ctx);
 
-      const result = await service.signup(
-        {
-          fullName: "Tashi Dema",
-          phone: "+97517123456",
-          password: "SecurePass123",
-          confirmPassword: "SecurePass123",
-          deviceId: "d1",
-        },
-        ctx,
+      expect(usersService.findOrCreateFromGoogle).toHaveBeenCalledWith(googleProfile);
+    });
+
+    it("registers the device, creates a session, and issues tokens", async () => {
+      const result = await service.loginWithGoogle(dto, ctx);
+
+      expect(devicesService.registerOrTouch).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", deviceId: "d1" }),
       );
-
-      expect(usersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ phone: "+97517123456", fullName: "Tashi Dema" }),
+      expect(sessionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", deviceId: "device-1" }),
       );
-      expect(otpService.generateAndSend).toHaveBeenCalledWith(
-        expect.objectContaining({ purpose: OtpPurpose.SIGNUP, userId: "user-1" }),
-      );
-      expect(result.purpose).toBe(OtpPurpose.SIGNUP);
-    });
-  });
-
-  describe("login", () => {
-    const dto = { phone: "+97517123456", password: "SecurePass123", deviceId: "d1" };
-
-    it("rejects when no account exists for the phone", async () => {
-      usersService.findByPhone.mockResolvedValueOnce(null);
-
-      await expect(service.login(dto, ctx)).rejects.toBeInstanceOf(UnauthorizedException);
-    });
-
-    it("rejects while the account is locked", async () => {
-      usersService.findByPhone.mockResolvedValueOnce({
-        id: "user-1",
-        lockedUntil: new Date(Date.now() + 60_000),
-      });
-
-      await expect(service.login(dto, ctx)).rejects.toBeInstanceOf(ForbiddenException);
-    });
-
-    it("records a failed attempt and rejects on a wrong password", async () => {
-      const passwordHash = await argon2.hash("CorrectPass123", { type: argon2.argon2id });
-      usersService.findByPhone.mockResolvedValueOnce({ id: "user-1", passwordHash, lockedUntil: null });
-
-      await expect(service.login(dto, ctx)).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(usersService.recordFailedLogin).toHaveBeenCalledWith("user-1", 5, 15);
-    });
-
-    it("issues tokens directly for a known, trusted device", async () => {
-      const passwordHash = await argon2.hash("SecurePass123", { type: argon2.argon2id });
-      usersService.findByPhone.mockResolvedValueOnce({
-        id: "user-1",
-        phone: "+97517123456",
-        passwordHash,
-        role: Role.USER,
-        lockedUntil: null,
-        profile: { fullName: "Tashi Dema" },
-      });
-      devicesService.isKnownDevice.mockResolvedValueOnce(true);
-
-      const result: any = await service.login(dto, ctx);
-
-      expect(otpService.generateAndSend).not.toHaveBeenCalled();
-      expect(sessionsService.create).toHaveBeenCalled();
       expect(result.tokens.accessToken).toBe("access-token");
       expect(result.tokens.refreshToken).toBe("raw-refresh-token");
+      expect(result.user).toEqual({
+        id: "user-1",
+        email: googleProfile.email,
+        fullName: googleProfile.fullName,
+        avatarUrl: googleProfile.avatarUrl,
+        role: "USER",
+      });
     });
 
-    it("requires an OTP step-up for a new, untrusted device", async () => {
-      const passwordHash = await argon2.hash("SecurePass123", { type: argon2.argon2id });
-      usersService.findByPhone.mockResolvedValueOnce({
-        id: "user-1",
-        phone: "+97517123456",
-        passwordHash,
-        role: Role.USER,
-        lockedUntil: null,
-      });
-      devicesService.isKnownDevice.mockResolvedValueOnce(false);
+    it("records the login and an audit log entry", async () => {
+      await service.loginWithGoogle(dto, ctx);
 
-      const result: any = await service.login(dto, ctx);
-
-      expect(otpService.generateAndSend).toHaveBeenCalledWith(
-        expect.objectContaining({ purpose: OtpPurpose.LOGIN }),
+      expect(usersService.recordLogin).toHaveBeenCalledWith("user-1");
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", action: "auth.google.login" }),
       );
-      expect(sessionsService.create).not.toHaveBeenCalled();
-      expect(result.purpose).toBe(OtpPurpose.SIGNUP); // shape returned by the OTP mock
     });
   });
 
-  describe("changePassword", () => {
-    it("rejects when the current password is incorrect", async () => {
-      const passwordHash = await argon2.hash("CorrectPass123", { type: argon2.argon2id });
-      usersService.findByIdOrThrow.mockResolvedValueOnce({ id: "user-1", passwordHash });
+  describe("refresh", () => {
+    it("rotates the refresh token and issues a new access token for the same user", async () => {
+      sessionsService.rotate.mockResolvedValueOnce({
+        rawToken: "new-refresh-token",
+        sessionId: "session-2",
+        userId: "user-1",
+      });
 
-      await expect(
-        service.changePassword(
-          "user-1",
-          { currentPassword: "WrongPass123", newPassword: "NewPass123", confirmPassword: "NewPass123" },
-          ctx,
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const result = await service.refresh("old-refresh-token");
+
+      expect(sessionsService.rotate).toHaveBeenCalledWith("old-refresh-token");
+      expect(result.tokens.refreshToken).toBe("new-refresh-token");
+      expect(result.user.id).toBe("user-1");
+    });
+  });
+
+  describe("logout", () => {
+    it("revokes the session by its refresh token and records an audit entry", async () => {
+      await service.logout("raw-refresh-token", ctx, "user-1");
+
+      expect(sessionsService.revokeByRawToken).toHaveBeenCalledWith("raw-refresh-token");
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", action: "auth.logout" }),
+      );
     });
   });
 });

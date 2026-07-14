@@ -5,7 +5,7 @@ import { PrismaService } from "../../database/prisma.service";
 export class DevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Upserts a device row on every login/signup so it can be listed/trusted/revoked. */
+  /** Upserts a device row on every login so it can be listed/revoked later. */
   async registerOrTouch(params: {
     userId: string;
     deviceId: string;
@@ -24,13 +24,6 @@ export class DevicesService {
         lastIp: params.ip,
       },
     });
-  }
-
-  async isKnownDevice(userId: string, deviceId: string): Promise<boolean> {
-    const device = await this.prisma.device.findUnique({
-      where: { userId_deviceId: { userId, deviceId } },
-    });
-    return Boolean(device && !device.revokedAt);
   }
 
   list(userId: string) {

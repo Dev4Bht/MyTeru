@@ -8,15 +8,13 @@ on:
 
 env:
   DATABASE_URL: postgresql://druksave:druksave@localhost:5432/druksave?schema=public
-  REDIS_URL: redis://localhost:6379
   NODE_ENV: test
   API_PORT: 4000
   API_GLOBAL_PREFIX: api
   CORS_ORIGINS: http://localhost:3000
   JWT_ACCESS_SECRET: ci-access-secret-min-32-characters-long
   JWT_REFRESH_SECRET: ci-refresh-secret-min-32-characters-long
-  SMS_PROVIDER: twilio
-  SMS_DEV_MODE: "true"
+  GOOGLE_CLIENT_ID: ci-fake-client-id.apps.googleusercontent.com
 
 jobs:
   build-lint-test:
@@ -32,14 +30,6 @@ jobs:
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U druksave -d druksave"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10

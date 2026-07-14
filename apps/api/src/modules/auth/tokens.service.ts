@@ -12,13 +12,12 @@ export class TokensService {
     private readonly configService: ConfigService,
   ) {}
 
-  signAccessToken(params: { userId: string; phone: string; role: Role; sessionId: string }): {
+  signAccessToken(params: { userId: string; role: Role; sessionId: string }): {
     accessToken: string;
     expiresAt: Date;
   } {
     const payload: JwtUserPayload = {
       sub: params.userId,
-      phone: params.phone,
       role: params.role,
       sessionId: params.sessionId,
     };

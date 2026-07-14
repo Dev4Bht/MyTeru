@@ -47,7 +47,7 @@ on five representative personas.
 
 | Phase | Delivers |
 |---|---|
-| 1 | Foundation: monorepo, full DB schema, Docker dev env, complete phone+OTP auth system |
+| 1 | Foundation: monorepo, full DB schema, Docker dev env, complete Google Sign-In auth system |
 | 2 | Core money tracking: income, expenses, transactions, categories, merchants, recurring transactions |
 | 3 | Budgets and savings goals |
 | 4 | Dashboard analytics: cash flow, category breakdown, Financial Health Score v1 |
@@ -62,7 +62,7 @@ scope until its phase begins.
 - % of monthly active users who log at least 3 transactions/week
 - % of users with an active savings goal
 - Average Financial Health Score trend over 90 days
-- OTP delivery success rate and signup completion rate (auth funnel health)
+- Google Sign-In completion rate (auth funnel health)
 
 ## 7. Bhutan Context Reference
 

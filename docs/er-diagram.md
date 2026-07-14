@@ -13,7 +13,6 @@ standard normalized approach for a ledger — rather than two parallel tables.
 erDiagram
     USER ||--o| PROFILE : has
     USER ||--o{ DEVICE : registers
-    USER ||--o{ OTP : requests
     USER ||--o{ SESSION : opens
     USER ||--o{ AUDIT_LOG : generates
     USER ||--o| SETTING : configures
@@ -29,7 +28,6 @@ erDiagram
     USER ||--o{ NOTIFICATION : receives
     USER ||--o{ REPORT : generates
 
-    DEVICE ||--o{ OTP : binds
     DEVICE ||--o{ SESSION : authorizes
 
     CATEGORY ||--o{ TRANSACTION : classifies
@@ -45,14 +43,10 @@ erDiagram
 
     USER {
         uuid id PK
-        string phone UK
         string email UK
-        string passwordHash
+        string googleId UK
         Role role
-        boolean isPhoneVerified
         boolean isActive
-        int failedLoginCount
-        datetime lockedUntil
         datetime lastLoginAt
     }
 
@@ -60,6 +54,7 @@ erDiagram
         uuid id PK
         uuid userId FK
         string fullName
+        string phone UK
         string dzongkhag
         string occupation
         string avatarUrl
@@ -70,21 +65,7 @@ erDiagram
         uuid userId FK
         string deviceId
         string platform
-        boolean isTrusted
         datetime lastSeenAt
-    }
-
-    OTP {
-        uuid id PK
-        uuid userId FK
-        string phone
-        OtpPurpose purpose
-        string codeHash
-        uuid deviceId FK
-        int attempts
-        int maxAttempts
-        datetime expiresAt
-        datetime consumedAt
     }
 
     SESSION {

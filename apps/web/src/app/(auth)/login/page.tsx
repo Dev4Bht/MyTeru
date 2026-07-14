@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoginForm } from "@/components/auth/login-form";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,22 +10,14 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Log in to see where your money went.</CardDescription>
+        <CardTitle>Welcome to DrukSave</CardTitle>
+        <CardDescription>Sign in with Google to see where your money went.</CardDescription>
       </CardHeader>
       <CardContent>
-        <LoginForm onDone={() => router.push("/dashboard")} />
-        <div className="mt-6 flex flex-col items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="hover:underline">
-            Forgot your password?
-          </Link>
-          <p>
-            New to DrukSave?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-              Create an account
-            </Link>
-          </p>
-        </div>
+        <GoogleSignInButton onDone={() => router.push("/dashboard")} />
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          New here? Signing in with Google creates your account automatically.
+        </p>
       </CardContent>
     </Card>
   );

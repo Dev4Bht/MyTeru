@@ -35,7 +35,7 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Phone: {user?.phone}
+          Email: {user?.email}
           <br />
           Role: {user?.role}
         </CardContent>

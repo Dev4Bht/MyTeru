@@ -13,8 +13,6 @@ import { UsersModule } from "./modules/users/users.module";
 import { DevicesModule } from "./modules/devices/devices.module";
 import { SessionsModule } from "./modules/sessions/sessions.module";
 import { AuditModule } from "./modules/audit/audit.module";
-import { OtpModule } from "./modules/otp/otp.module";
-import { SmsModule } from "./modules/sms/sms.module";
 import { HealthModule } from "./modules/health/health.module";
 
 @Module({
@@ -31,8 +29,6 @@ import { HealthModule } from "./modules/health/health.module";
       throttlers: [{ ttl: 60_000, limit: 60 }],
     }),
     PrismaModule,
-    SmsModule,
-    OtpModule,
     AuditModule,
     UsersModule,
     DevicesModule,

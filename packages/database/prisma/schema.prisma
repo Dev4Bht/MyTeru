@@ -23,17 +23,6 @@ enum Role {
   ADMIN
 }
 
-enum OtpPurpose {
-  SIGNUP
-  LOGIN
-  PASSWORD_RESET
-  CHANGE_PHONE
-}
-
-enum OtpChannel {
-  SMS
-}
-
 enum TransactionType {
   INCOME
   EXPENSE
@@ -114,22 +103,17 @@ enum ReportFormat {
 // ─────────────────────────────────────────────────────────────────────────
 
 model User {
-  id                String    @id @default(uuid())
-  phone             String    @unique // E.164, e.g. +97517123456
-  email             String?   @unique
-  passwordHash      String
-  role              Role      @default(USER)
-  isPhoneVerified   Boolean   @default(false)
-  isActive          Boolean   @default(true)
-  failedLoginCount  Int       @default(0)
-  lockedUntil       DateTime?
-  lastLoginAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  email       String    @unique // from the verified Google account — the only identity we trust
+  googleId    String    @unique // Google's "sub" claim
+  role        Role      @default(USER)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   profile           Profile?
   devices           Device[]
-  otps              Otp[]
   sessions          Session[]
   auditLogs         AuditLog[]
   settings          Setting?
@@ -146,21 +130,21 @@ model User {
   notifications          Notification[]
   reports                Report[]
 
-  @@index([phone])
   @@map("users")
 }
 
 model Profile {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   fullName     String
+  phone        String?   @unique // E.164, e.g. +97517123456 — optional, for future SMS notifications only, not auth
   dzongkhag    String? // Bhutanese district, e.g. Thimphu, Paro
   occupation   String? // e.g. Government Employee, Farmer, Taxi Driver
-  avatarUrl    String?
+  avatarUrl    String? // from the Google account picture, editable later
   dateOfBirth  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("profiles")
 }
@@ -172,38 +156,15 @@ model Device {
   deviceId     String // client-generated fingerprint
   name         String? // e.g. "iPhone 13", "Chrome on Windows"
   platform     String? // ios | android | web
-  isTrusted    Boolean   @default(false)
   lastSeenAt   DateTime  @default(now())
   lastIp       String?
   createdAt    DateTime  @default(now())
   revokedAt    DateTime?
 
-  otps         Otp[]
   sessions     Session[]
 
   @@unique([userId, deviceId])
   @@map("devices")
-}
-
-model Otp {
-  id            String     @id @default(uuid())
-  userId        String?
-  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phone         String // OTP may be requested pre-signup, before a User exists
-  purpose       OtpPurpose
-  channel       OtpChannel @default(SMS)
-  codeHash      String // never store the raw code
-  deviceId      String?
-  device        Device?    @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  attempts      Int        @default(0)
-  maxAttempts   Int        @default(5)
-  expiresAt     DateTime
-  consumedAt    DateTime?
-  createdAt     DateTime   @default(now())
-
-  @@index([phone, purpose, createdAt])
-  @@index([userId])
-  @@map("otps")
 }
 
 model Session {
@@ -228,7 +189,7 @@ model AuditLog {
   id         String   @id @default(uuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String // e.g. "auth.login.success", "auth.login.failed", "auth.password.changed"
+  action     String // e.g. "auth.login.success", "auth.google.linked"
   metadata   Json?
   ip         String?
   userAgent  String?

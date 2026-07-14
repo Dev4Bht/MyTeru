@@ -32,16 +32,11 @@ services:
         value: 30d
       - key: CORS_ORIGINS
         value: https://druksave-web.onrender.com
-      - key: SMS_PROVIDER
-        value: twilio
-      - key: SMS_DEV_MODE
-        value: "true"
-      - key: TWILIO_ACCOUNT_SID
-        value: ""
-      - key: TWILIO_AUTH_TOKEN
-        value: ""
-      - key: TWILIO_FROM_NUMBER
-        value: ""
+      # Must match the OAuth Client ID created at
+      # https://console.cloud.google.com/apis/credentials — set manually in
+      # the Render dashboard after the blueprint creates this service.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
 
   - type: web
     name: druksave-web
@@ -58,3 +53,9 @@ services:
         value: https://druksave-api.onrender.com
       - key: API_GLOBAL_PREFIX
         value: api
+      # Same Google OAuth Client ID as druksave-api's GOOGLE_CLIENT_ID — this
+      # copy is public (NEXT_PUBLIC_) because the Sign-In button needs it in
+      # the browser bundle; set manually after the blueprint creates this
+      # service, then trigger a redeploy so Next.js inlines it at build time.
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false

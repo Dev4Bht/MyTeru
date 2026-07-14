@@ -1,4 +1,4 @@
-import { AuthenticatedUser, OtpChallengeResponse } from "@druksave/shared";
+import { AuthenticatedUser } from "@druksave/shared";
 
 export interface SessionResponse {
   user: AuthenticatedUser;
@@ -34,27 +34,8 @@ async function post<TResponse>(path: string, body: Record<string, unknown>): Pro
 }
 
 export const authApi = {
-  signup: (input: { fullName: string; phone: string; email?: string; password: string; confirmPassword: string; deviceId: string }) =>
-    post<OtpChallengeResponse>("/api/auth/signup", input),
-
-  verifyOtp: (input: { phone: string; code: string; purpose: string; deviceId: string }) =>
-    post<SessionResponse | OtpChallengeResponse>("/api/auth/otp/verify", input),
-
-  resendOtp: (input: { phone: string; purpose: string; deviceId: string }) =>
-    post<OtpChallengeResponse>("/api/auth/otp/resend", input),
-
-  login: (input: { phone: string; password: string; deviceId: string }) =>
-    post<SessionResponse | OtpChallengeResponse>("/api/auth/login", input),
+  loginWithGoogle: (input: { idToken: string; deviceId: string }) =>
+    post<SessionResponse>("/api/auth/google", input),
 
   logout: () => post<{ success: boolean }>("/api/auth/logout", {}),
-
-  forgotPassword: (input: { phone: string }) =>
-    post<OtpChallengeResponse>("/api/auth/password/forgot", input),
-
-  resetPassword: (input: { phone: string; code: string; newPassword: string; confirmPassword: string }) =>
-    post<{ success: boolean }>("/api/auth/password/reset", input),
 };
-
-export function isSessionResponse(data: SessionResponse | OtpChallengeResponse): data is SessionResponse {
-  return "accessToken" in data;
-}

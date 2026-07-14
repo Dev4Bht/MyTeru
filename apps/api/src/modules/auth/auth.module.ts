@@ -6,10 +6,10 @@ import { UsersModule } from "../users/users.module";
 import { DevicesModule } from "../devices/devices.module";
 import { SessionsModule } from "../sessions/sessions.module";
 import { AuditModule } from "../audit/audit.module";
-import { OtpModule } from "../otp/otp.module";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { TokensService } from "./tokens.service";
+import { GoogleAuthService } from "./google-auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
@@ -27,10 +27,9 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     DevicesModule,
     SessionsModule,
     AuditModule,
-    OtpModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, TokensService, JwtStrategy],
+  providers: [AuthService, TokensService, GoogleAuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

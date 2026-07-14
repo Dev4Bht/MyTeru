@@ -1,13 +1,5 @@
 import { plainToInstance } from "class-transformer";
-import {
-  IsBooleanString,
-  IsIn,
-  IsNumberString,
-  IsOptional,
-  IsString,
-  MinLength,
-  validateSync,
-} from "class-validator";
+import { IsIn, IsNumberString, IsOptional, IsString, MinLength, validateSync } from "class-validator";
 
 class EnvironmentVariables {
   @IsIn(["development", "test", "production"])
@@ -37,12 +29,12 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGINS!: string;
 
-  @IsIn(["twilio"])
-  SMS_PROVIDER!: string;
-
-  @IsBooleanString()
+  // Optional at boot so the app still starts before Google OAuth is
+  // configured — GoogleAuthService fails verification (not app startup)
+  // when this is unset.
+  @IsString()
   @IsOptional()
-  SMS_DEV_MODE?: string;
+  GOOGLE_CLIENT_ID?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {
