@@ -14,6 +14,9 @@ import { DevicesModule } from "./modules/devices/devices.module";
 import { SessionsModule } from "./modules/sessions/sessions.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { HealthModule } from "./modules/health/health.module";
+import { CategoriesModule } from "./modules/categories/categories.module";
+import { TransactionsModule } from "./modules/transactions/transactions.module";
+import { RecurringTransactionsModule } from "./modules/recurring-transactions/recurring-transactions.module";
 
 @Module({
   imports: [
@@ -35,6 +38,9 @@ import { HealthModule } from "./modules/health/health.module";
     SessionsModule,
     AuthModule,
     HealthModule,
+    CategoriesModule,
+    TransactionsModule,
+    RecurringTransactionsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

@@ -58,3 +58,5 @@ services:
         value: https://druksave-api.onrender.com
       - key: API_GLOBAL_PREFIX
         value: api
+      - key: NEXT_PUBLIC_API_URL
+        value: https://druksave-api.onrender.com/api
