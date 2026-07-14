@@ -33,7 +33,7 @@ pnpm dev                      # runs apps/api and apps/web in parallel via Turbo
 
 - API: http://localhost:4000/api
 - Swagger docs: http://localhost:4000/api/docs
-- Web: http://localhost:3000
+- Web: http://localhost:3300
 - Adminer (DB inspector): http://localhost:9091 (server: `postgres`, user/pass: `druksave`)
 
 Note: the dev Postgres/Adminer containers are published on non-default host

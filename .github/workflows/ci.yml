@@ -11,7 +11,7 @@ env:
   NODE_ENV: test
   API_PORT: 4000
   API_GLOBAL_PREFIX: api
-  CORS_ORIGINS: http://localhost:3000
+  CORS_ORIGINS: http://localhost:3300
   JWT_ACCESS_SECRET: ci-access-secret-min-32-characters-long
   JWT_REFRESH_SECRET: ci-refresh-secret-min-32-characters-long
 

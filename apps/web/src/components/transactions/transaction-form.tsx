@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useCategories } from "@/lib/queries/use-categories";
 import { useCreateTransaction, useUpdateTransaction } from "@/lib/queries/use-transactions";
 
@@ -58,22 +59,14 @@ export function TransactionForm({
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          variant={type === "EXPENSE" ? "default" : "outline"}
-          onClick={() => form.setValue("type", "EXPENSE")}
-        >
-          Expense
-        </Button>
-        <Button
-          type="button"
-          variant={type === "INCOME" ? "default" : "outline"}
-          onClick={() => form.setValue("type", "INCOME")}
-        >
-          Income
-        </Button>
-      </div>
+      <SegmentedControl
+        options={[
+          { label: "Expense", value: "EXPENSE" as const, activeClassName: "text-destructive" },
+          { label: "Income", value: "INCOME" as const, activeClassName: "text-success" },
+        ]}
+        value={type}
+        onChange={(value) => form.setValue("type", value)}
+      />
 
       <div className="space-y-2">
         <Label htmlFor="amountNu">Amount (Nu.)</Label>
@@ -81,6 +74,8 @@ export function TransactionForm({
           id="amountNu"
           type="number"
           step="0.01"
+          inputMode="decimal"
+          className="font-tnum text-lg"
           {...form.register("amountNu", { valueAsNumber: true })}
         />
         {form.formState.errors.amountNu && (

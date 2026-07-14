@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import configuration from "./config/configuration";
 import { validateEnv } from "./config/env.validation";
@@ -17,6 +18,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { TransactionsModule } from "./modules/transactions/transactions.module";
 import { RecurringTransactionsModule } from "./modules/recurring-transactions/recurring-transactions.module";
+import { BudgetsModule } from "./modules/budgets/budgets.module";
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { RecurringTransactionsModule } from "./modules/recurring-transactions/re
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 60 }],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuditModule,
     UsersModule,
@@ -41,6 +44,7 @@ import { RecurringTransactionsModule } from "./modules/recurring-transactions/re
     CategoriesModule,
     TransactionsModule,
     RecurringTransactionsModule,
+    BudgetsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
