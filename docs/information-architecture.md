@@ -7,7 +7,7 @@ phases slot into a coherent structure rather than being bolted on.
 ```
 DrukSave
 ├─ Auth (Phase 1 — live)
-│  ├─ Sign In with Google (also creates the account on first sign-in)
+│  ├─ Sign Up / Log In (email + password)
 │  └─ Account Security (devices, sessions)
 │
 ├─ Dashboard (Phase 4)

@@ -34,8 +34,11 @@ async function post<TResponse>(path: string, body: Record<string, unknown>): Pro
 }
 
 export const authApi = {
-  loginWithGoogle: (input: { idToken: string; deviceId: string }) =>
-    post<SessionResponse>("/api/auth/google", input),
+  signup: (input: { fullName: string; email: string; password: string; confirmPassword: string; deviceId: string }) =>
+    post<SessionResponse>("/api/auth/signup", input),
+
+  login: (input: { email: string; password: string; deviceId: string }) =>
+    post<SessionResponse>("/api/auth/login", input),
 
   logout: () => post<{ success: boolean }>("/api/auth/logout", {}),
 };

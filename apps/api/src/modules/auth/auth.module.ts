@@ -9,7 +9,6 @@ import { AuditModule } from "../audit/audit.module";
 import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { TokensService } from "./tokens.service";
-import { GoogleAuthService } from "./google-auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
@@ -29,7 +28,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
     AuditModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, TokensService, GoogleAuthService, JwtStrategy],
+  providers: [AuthService, TokensService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

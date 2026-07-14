@@ -20,10 +20,10 @@ const SYSTEM_CATEGORIES: { name: string; type: TransactionType; icon: string }[]
 ];
 
 /**
- * User accounts are no longer seeded here — every account is created by an
- * actual Google sign-in (see AuthService.loginWithGoogle), so there's no
- * meaningful "fake" account to pre-populate. To grant ADMIN, sign in once
- * for real, then update that user's `role` directly in the database.
+ * User accounts are no longer seeded here — every account is created via
+ * signup (see AuthService.signup), so there's no meaningful "fake" account
+ * to pre-populate. To grant ADMIN, sign up once for real, then update that
+ * user's `role` directly in the database.
  */
 async function main() {
   console.log("Seeding system categories...");

@@ -103,14 +103,16 @@ enum ReportFormat {
 // ─────────────────────────────────────────────────────────────────────────
 
 model User {
-  id          String    @id @default(uuid())
-  email       String    @unique // from the verified Google account — the only identity we trust
-  googleId    String    @unique // Google's "sub" claim
-  role        Role      @default(USER)
-  isActive    Boolean   @default(true)
-  lastLoginAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  role             Role      @default(USER)
+  isActive         Boolean   @default(true)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   profile           Profile?
   devices           Device[]
@@ -141,7 +143,7 @@ model Profile {
   phone        String?   @unique // E.164, e.g. +97517123456 — optional, for future SMS notifications only, not auth
   dzongkhag    String? // Bhutanese district, e.g. Thimphu, Paro
   occupation   String? // e.g. Government Employee, Farmer, Taxi Driver
-  avatarUrl    String? // from the Google account picture, editable later
+  avatarUrl    String?
   dateOfBirth  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

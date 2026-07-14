@@ -28,13 +28,6 @@ class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGINS!: string;
-
-  // Optional at boot so the app still starts before Google OAuth is
-  // configured — GoogleAuthService fails verification (not app startup)
-  // when this is unset.
-  @IsString()
-  @IsOptional()
-  GOOGLE_CLIENT_ID?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

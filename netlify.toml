@@ -18,11 +18,14 @@
   # installed. esbuild resolves every require() statically and fails the
   # whole bundle on them, so they must be excluded rather than bundled; the
   # calls are never actually reached at runtime for a plain HTTP Nest app.
+  # argon2 ships a native binary that esbuild can't bundle into the function
+  # zip; it must be excluded so Node resolves it from node_modules at runtime.
   external_node_modules = [
     "@nestjs/microservices",
     "@nestjs/microservices/microservices-module",
     "@nestjs/websockets/socket-module",
     "class-transformer/storage",
+    "argon2",
   ]
 
 [[plugins]]

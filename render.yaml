@@ -32,11 +32,16 @@ services:
         value: 30d
       - key: CORS_ORIGINS
         value: https://druksave-web.onrender.com
-      # Must match the OAuth Client ID created at
-      # https://console.cloud.google.com/apis/credentials — set manually in
-      # the Render dashboard after the blueprint creates this service.
-      - key: GOOGLE_CLIENT_ID
-        sync: false
+      - key: ARGON2_MEMORY_COST
+        value: "19456"
+      - key: ARGON2_TIME_COST
+        value: "2"
+      - key: ARGON2_PARALLELISM
+        value: "1"
+      - key: LOGIN_MAX_ATTEMPTS
+        value: "5"
+      - key: LOGIN_LOCKOUT_MINUTES
+        value: "15"
 
   - type: web
     name: druksave-web
@@ -53,9 +58,3 @@ services:
         value: https://druksave-api.onrender.com
       - key: API_GLOBAL_PREFIX
         value: api
-      # Same Google OAuth Client ID as druksave-api's GOOGLE_CLIENT_ID — this
-      # copy is public (NEXT_PUBLIC_) because the Sign-In button needs it in
-      # the browser bundle; set manually after the blueprint creates this
-      # service, then trigger a redeploy so Next.js inlines it at build time.
-      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
-        sync: false

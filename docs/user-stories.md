@@ -5,15 +5,16 @@ maps to the Phase 1 API surface in `apps/api/src/modules/auth`.
 
 ## Sign-In & Account Creation
 
-- As a new user, I want to sign in with my Google account, so that I can
-  start using DrukSave without creating and remembering a new password. →
-  `POST /api/auth/google`
-- As a new user, I want my account to be created automatically the first
-  time I sign in with Google, so there's no separate signup step. →
-  `UsersService.findOrCreateFromGoogle`
-- As a returning user, I want signing in with the same Google account to
-  return me to my existing account rather than creating a duplicate, so my
-  data is always in one place. → `UsersService.findByGoogleId`
+- As a new user, I want to create an account with my email and a password,
+  so that I can start using DrukSave. → `POST /api/auth/signup`
+- As a returning user, I want to log in with my email and password, so that
+  I can access my existing account and data. → `POST /api/auth/login`
+- As a user, I want a clear error if I try to sign up with an email that's
+  already registered, so I know to log in instead. →
+  `AuthService.signup` (409 Conflict)
+- As a user, I want repeated failed login attempts on my account to trigger
+  a temporary lockout, so that my account is protected from brute-force
+  password guessing. → `UsersService.recordFailedLogin`
 
 ## Session Management
 
@@ -36,8 +37,7 @@ maps to the Phase 1 API surface in `apps/api/src/modules/auth`.
 
 ## Trust Model
 
-- As a platform operator, I want to trust Google's own verification of the
-  user's identity (a signed ID token, checked against Google's public keys
-  and our OAuth Client ID) rather than maintaining our own password/OTP
-  security surface, so there's less to get wrong and no SMS delivery
-  dependency. → `GoogleAuthService.verifyIdToken`
+- As a platform operator, I want passwords hashed with Argon2id (never
+  stored or logged in plaintext) and never returned in any API response, so
+  that a database leak doesn't expose usable credentials. →
+  `AuthService.hashPassword`

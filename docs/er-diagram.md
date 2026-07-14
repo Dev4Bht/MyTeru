@@ -44,9 +44,11 @@ erDiagram
     USER {
         uuid id PK
         string email UK
-        string googleId UK
+        string passwordHash
         Role role
         boolean isActive
+        int failedLoginCount
+        datetime lockedUntil
         datetime lastLoginAt
     }
 

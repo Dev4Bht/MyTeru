@@ -14,7 +14,6 @@ env:
   CORS_ORIGINS: http://localhost:3000
   JWT_ACCESS_SECRET: ci-access-secret-min-32-characters-long
   JWT_REFRESH_SECRET: ci-refresh-secret-min-32-characters-long
-  GOOGLE_CLIENT_ID: ci-fake-client-id.apps.googleusercontent.com
 
 jobs:
   build-lint-test:

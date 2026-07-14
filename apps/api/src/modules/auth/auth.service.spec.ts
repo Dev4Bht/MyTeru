@@ -1,36 +1,47 @@
+import * as argon2 from "argon2";
+import { ConflictException, ForbiddenException, UnauthorizedException } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 
 describe("AuthService", () => {
+  let configService: any;
   let usersService: any;
   let devicesService: any;
   let sessionsService: any;
   let auditService: any;
-  let googleAuthService: any;
   let tokensService: any;
   let service: AuthService;
 
   const ctx = { ip: "127.0.0.1", userAgent: "jest" };
 
-  const googleProfile = {
-    googleId: "google-sub-123",
-    email: "tashi.dema@example.bt",
-    fullName: "Tashi Dema",
-    avatarUrl: "https://example.com/avatar.jpg",
-  };
-
   const dbUser = {
     id: "user-1",
-    email: googleProfile.email,
-    googleId: googleProfile.googleId,
+    email: "tashi.dema@example.bt",
+    passwordHash: "irrelevant-in-most-tests",
     role: "USER",
-    profile: { fullName: googleProfile.fullName, avatarUrl: googleProfile.avatarUrl },
+    lockedUntil: null,
+    failedLoginCount: 0,
+    profile: { fullName: "Tashi Dema", avatarUrl: null },
   };
 
   beforeEach(() => {
+    configService = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, unknown> = {
+          "argon2.memoryCost": 19456,
+          "argon2.timeCost": 2,
+          "argon2.parallelism": 1,
+          "login.maxAttempts": 5,
+          "login.lockoutMinutes": 15,
+        };
+        return values[key];
+      }),
+    };
     usersService = {
-      findOrCreateFromGoogle: jest.fn().mockResolvedValue(dbUser),
+      findByEmail: jest.fn().mockResolvedValue(null),
       findByIdOrThrow: jest.fn().mockResolvedValue(dbUser),
-      recordLogin: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn().mockResolvedValue(dbUser),
+      recordFailedLogin: jest.fn().mockResolvedValue(undefined),
+      resetFailedLogins: jest.fn().mockResolvedValue(undefined),
     };
     devicesService = {
       registerOrTouch: jest.fn().mockResolvedValue({ id: "device-1" }),
@@ -41,7 +52,6 @@ describe("AuthService", () => {
       revokeByRawToken: jest.fn().mockResolvedValue(undefined),
     };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
-    googleAuthService = { verifyIdToken: jest.fn().mockResolvedValue(googleProfile) };
     tokensService = {
       signAccessToken: jest.fn().mockReturnValue({
         accessToken: "access-token",
@@ -50,39 +60,47 @@ describe("AuthService", () => {
     };
 
     service = new AuthService(
+      configService,
       usersService,
       devicesService,
       sessionsService,
       auditService,
-      googleAuthService,
       tokensService,
     );
   });
 
-  describe("loginWithGoogle", () => {
-    const dto = { idToken: "fake-id-token", deviceId: "d1" };
+  describe("signup", () => {
+    const dto = {
+      fullName: "Tashi Dema",
+      email: "tashi.dema@example.bt",
+      password: "SecurePass123",
+      confirmPassword: "SecurePass123",
+      deviceId: "d1",
+    };
 
-    it("verifies the Google ID token before doing anything else", async () => {
-      await service.loginWithGoogle(dto, ctx);
-
-      expect(googleAuthService.verifyIdToken).toHaveBeenCalledWith("fake-id-token");
+    it("rejects mismatched passwords without touching the database", async () => {
+      await expect(
+        service.signup({ ...dto, confirmPassword: "Different123" }, ctx),
+      ).rejects.toThrow("Passwords do not match");
+      expect(usersService.create).not.toHaveBeenCalled();
     });
 
-    it("propagates a rejected/invalid Google token without creating a session", async () => {
-      googleAuthService.verifyIdToken.mockRejectedValueOnce(new Error("invalid token"));
+    it("rejects a signup when the email is already registered", async () => {
+      usersService.findByEmail.mockResolvedValueOnce(dbUser);
 
-      await expect(service.loginWithGoogle(dto, ctx)).rejects.toThrow("invalid token");
-      expect(sessionsService.create).not.toHaveBeenCalled();
+      await expect(service.signup(dto, ctx)).rejects.toThrow(ConflictException);
+      expect(usersService.create).not.toHaveBeenCalled();
     });
 
-    it("finds-or-creates the user from the verified Google profile", async () => {
-      await service.loginWithGoogle(dto, ctx);
+    it("hashes the password, creates the user, registers a device and session, and issues tokens", async () => {
+      const result = await service.signup(dto, ctx);
 
-      expect(usersService.findOrCreateFromGoogle).toHaveBeenCalledWith(googleProfile);
-    });
-
-    it("registers the device, creates a session, and issues tokens", async () => {
-      const result = await service.loginWithGoogle(dto, ctx);
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: dto.email, fullName: dto.fullName }),
+      );
+      const createCall = usersService.create.mock.calls[0][0];
+      expect(createCall.passwordHash).not.toBe(dto.password);
+      expect(await argon2.verify(createCall.passwordHash, dto.password)).toBe(true);
 
       expect(devicesService.registerOrTouch).toHaveBeenCalledWith(
         expect.objectContaining({ userId: "user-1", deviceId: "d1" }),
@@ -94,19 +112,63 @@ describe("AuthService", () => {
       expect(result.tokens.refreshToken).toBe("raw-refresh-token");
       expect(result.user).toEqual({
         id: "user-1",
-        email: googleProfile.email,
-        fullName: googleProfile.fullName,
-        avatarUrl: googleProfile.avatarUrl,
+        email: dbUser.email,
+        fullName: "Tashi Dema",
+        avatarUrl: null,
         role: "USER",
       });
     });
 
-    it("records the login and an audit log entry", async () => {
-      await service.loginWithGoogle(dto, ctx);
+    it("records a signup audit log entry", async () => {
+      await service.signup(dto, ctx);
 
-      expect(usersService.recordLogin).toHaveBeenCalledWith("user-1");
       expect(auditService.record).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: "user-1", action: "auth.google.login" }),
+        expect.objectContaining({ userId: "user-1", action: "auth.signup" }),
+      );
+    });
+  });
+
+  describe("login", () => {
+    const dto = { email: "tashi.dema@example.bt", password: "SecurePass123", deviceId: "d1" };
+
+    it("rejects an unknown email", async () => {
+      usersService.findByEmail.mockResolvedValueOnce(null);
+
+      await expect(service.login(dto, ctx)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("rejects a login while the account is locked", async () => {
+      usersService.findByEmail.mockResolvedValueOnce({
+        ...dbUser,
+        lockedUntil: new Date(Date.now() + 60_000),
+      });
+
+      await expect(service.login(dto, ctx)).rejects.toThrow(ForbiddenException);
+    });
+
+    it("rejects an incorrect password and records the failed attempt", async () => {
+      const passwordHash = await argon2.hash("CorrectPass123");
+      usersService.findByEmail.mockResolvedValueOnce({ ...dbUser, passwordHash });
+
+      await expect(service.login(dto, ctx)).rejects.toThrow(UnauthorizedException);
+      expect(usersService.recordFailedLogin).toHaveBeenCalledWith("user-1", 5, 15);
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", action: "auth.login.failed" }),
+      );
+      expect(sessionsService.create).not.toHaveBeenCalled();
+    });
+
+    it("logs in with a correct password, resets failed attempts, and issues tokens", async () => {
+      const passwordHash = await argon2.hash(dto.password);
+      usersService.findByEmail.mockResolvedValueOnce({ ...dbUser, passwordHash });
+
+      const result = await service.login(dto, ctx);
+
+      expect(usersService.resetFailedLogins).toHaveBeenCalledWith("user-1");
+      expect(result.tokens.accessToken).toBe("access-token");
+      expect(result.tokens.refreshToken).toBe("raw-refresh-token");
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-1", action: "auth.login.success" }),
       );
     });
   });

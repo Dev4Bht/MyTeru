@@ -1,13 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service";
-import { GoogleProfile } from "../auth/google-auth.service";
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByGoogleId(googleId: string) {
-    return this.prisma.user.findUnique({ where: { googleId }, include: { profile: true } });
+  findByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email }, include: { profile: true } });
   }
 
   async findByIdOrThrow(id: string) {
@@ -21,33 +20,36 @@ export class UsersService {
     return user;
   }
 
-  /** Finds the user for a verified Google profile, creating one on first sign-in. */
-  async findOrCreateFromGoogle(profile: GoogleProfile) {
-    const existing = await this.findByGoogleId(profile.googleId);
-    if (existing) {
-      return existing;
-    }
-
+  create(params: { email: string; passwordHash: string; fullName: string }) {
     return this.prisma.user.create({
       data: {
-        email: profile.email,
-        googleId: profile.googleId,
-        profile: {
-          create: {
-            fullName: profile.fullName,
-            avatarUrl: profile.avatarUrl,
-          },
-        },
+        email: params.email,
+        passwordHash: params.passwordHash,
+        profile: { create: { fullName: params.fullName } },
         settings: { create: {} },
       },
       include: { profile: true },
     });
   }
 
-  recordLogin(userId: string) {
+  async recordFailedLogin(userId: string, maxAttempts: number, lockoutMinutes: number) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { failedLoginCount: { increment: 1 } },
+    });
+
+    if (user.failedLoginCount >= maxAttempts) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lockedUntil: new Date(Date.now() + lockoutMinutes * 60 * 1000) },
+      });
+    }
+  }
+
+  resetFailedLogins(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { lastLoginAt: new Date() },
+      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
     });
   }
 }
