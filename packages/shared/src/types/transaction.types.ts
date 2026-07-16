@@ -54,3 +54,16 @@ export interface PaginatedResult<T> {
   page: number;
   pageSize: number;
 }
+
+export interface CategoryBreakdownItemDto {
+  categoryId: string;
+  name: string;
+  icon: string | null;
+  type: TransactionType;
+  amountNu: string;
+}
+
+export interface CategoryBreakdownDto {
+  month: string; // YYYY-MM
+  items: CategoryBreakdownItemDto[];
+}

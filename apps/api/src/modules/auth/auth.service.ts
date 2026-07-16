@@ -21,6 +21,12 @@ export interface RequestContext {
   userAgent?: string;
 }
 
+// Precomputed Argon2id hash of a random value, used to keep login() timing
+// consistent between "unknown email" and "wrong password" so the endpoint
+// doesn't leak which emails have accounts via response latency.
+const DUMMY_PASSWORD_HASH =
+  "$argon2id$v=19$m=19456,t=2,p=1$R4keE+4gNuyuhJbMaVfgOA$K0stdP5X7k4tHYvXcPHRE0h/Kn1z4EkQR5NOZ7LKYuI";
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -96,7 +102,13 @@ export class AuthService {
 
   async login(dto: LoginDto, ctx: RequestContext): Promise<AuthResponse> {
     const user = await this.usersService.findByEmail(dto.email);
+
     if (!user) {
+      // Still run an Argon2 verify against a fixed dummy hash so this takes
+      // roughly as long as the "wrong password" case below — otherwise the
+      // endpoint could be used to enumerate which emails have accounts via
+      // response latency.
+      await argon2.verify(DUMMY_PASSWORD_HASH, dto.password);
       throw new UnauthorizedException("Invalid email or password");
     }
 

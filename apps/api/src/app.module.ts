@@ -19,6 +19,7 @@ import { CategoriesModule } from "./modules/categories/categories.module";
 import { TransactionsModule } from "./modules/transactions/transactions.module";
 import { RecurringTransactionsModule } from "./modules/recurring-transactions/recurring-transactions.module";
 import { BudgetsModule } from "./modules/budgets/budgets.module";
+import { GoalsModule } from "./modules/goals/goals.module";
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { BudgetsModule } from "./modules/budgets/budgets.module";
     TransactionsModule,
     RecurringTransactionsModule,
     BudgetsModule,
+    GoalsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

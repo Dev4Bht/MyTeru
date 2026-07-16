@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { formatNu } from "@druksave/shared";
 import { Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -215,6 +216,10 @@ export default function BudgetPlanPage() {
         <Wallet className="h-4 w-4" />
         {saveMutation.isPending ? "Saving..." : "Save my plan"}
       </Button>
+
+      <Link href="/dashboard/categories" className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline">
+        Manage categories
+      </Link>
     </div>
   );
 }

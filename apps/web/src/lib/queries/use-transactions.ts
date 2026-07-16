@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CategoryBreakdownDto,
   CreateTransactionDto,
   ListTransactionsQueryDto,
   PaginatedResult,
@@ -23,6 +24,13 @@ export function useTransactionSummary(month?: string) {
   return useQuery({
     queryKey: ["transactions", "summary", month],
     queryFn: () => apiFetch<TransactionSummaryDto>("/transactions/summary", { params: { month } }),
+  });
+}
+
+export function useCategoryBreakdown(month?: string) {
+  return useQuery({
+    queryKey: ["transactions", "breakdown", month],
+    queryFn: () => apiFetch<CategoryBreakdownDto>("/transactions/breakdown", { params: { month } }),
   });
 }
 

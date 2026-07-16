@@ -21,7 +21,7 @@ export function RecurringForm({ onDone }: { onDone: () => void }) {
   const createRecurring = useCreateRecurringTransaction();
 
   const onSubmit = async (values: CreateRecurringTransactionDto) => {
-    await createRecurring.mutateAsync(values);
+    await createRecurring.mutateAsync({ ...values, endDate: values.endDate || undefined });
     onDone();
   };
 

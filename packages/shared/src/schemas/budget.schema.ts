@@ -1,22 +1,5 @@
 import { z } from "zod";
 
-export const budgetPeriodSchema = z.enum(["WEEKLY", "MONTHLY", "YEARLY"]);
-
-export const createBudgetSchema = z.object({
-  categoryId: z.string().uuid(),
-  period: budgetPeriodSchema,
-  limitNu: z.coerce
-    .number()
-    .positive("Amount must be greater than zero")
-    .multipleOf(0.01, "Amount can have at most 2 decimal places"),
-  startDate: z.string().min(1, "Select a start date"),
-  endDate: z.string().optional(),
-});
-export type CreateBudgetDto = z.infer<typeof createBudgetSchema>;
-
-export const updateBudgetSchema = createBudgetSchema.partial();
-export type UpdateBudgetDto = z.infer<typeof updateBudgetSchema>;
-
 /** One line in a monthly plan — either an income source or a spending allocation. */
 export const budgetPlanLineInputSchema = z.object({
   budgetId: z.string().uuid().optional(),

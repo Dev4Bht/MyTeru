@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, ArrowLeftRight, Tags, Repeat, PiggyBank, LogOut } from "lucide-react";
+import { Home, ArrowLeftRight, Tags, Repeat, PiggyBank, Target, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authApi } from "@/lib/auth-api";
 import { useAuthStore } from "@/lib/auth-store";
@@ -12,9 +12,11 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Overview", icon: Home },
   { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/dashboard/budget", label: "Plan", icon: PiggyBank },
-  { href: "/dashboard/categories", label: "Categories", icon: Tags },
+  { href: "/dashboard/goals", label: "Goals", icon: Target },
   { href: "/dashboard/recurring", label: "Recurring", icon: Repeat },
 ] as const;
+
+const SECONDARY_LINKS = [{ href: "/dashboard/categories", label: "Categories", icon: Tags }] as const;
 
 function Logo({ compact }: { compact?: boolean }) {
   return (
@@ -47,6 +49,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Logo />
         <nav className="mt-8 flex flex-1 flex-col gap-1">
           {NAV_LINKS.map((link) => {
+            const isActive = pathname === link.href;
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+                {link.label}
+              </Link>
+            );
+          })}
+
+          <div className="my-2 border-t border-border" />
+
+          {SECONDARY_LINKS.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;
             return (

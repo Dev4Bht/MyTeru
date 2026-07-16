@@ -37,6 +37,12 @@ export class TransactionsController {
     return this.transactionsService.summary(user.sub, query.month);
   }
 
+  @Get("breakdown")
+  @ApiOperation({ summary: "Get spending/income grouped by category for a month" })
+  breakdown(@CurrentUser() user: JwtUserPayload, @Query() query: TransactionSummaryQueryDto) {
+    return this.transactionsService.categoryBreakdown(user.sub, query.month);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Get a single transaction owned by the current user" })
   async findOne(@CurrentUser() user: JwtUserPayload, @Param("id") id: string) {

@@ -14,6 +14,10 @@ export class TransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, dto: CreateTransactionDto) {
+    if (dto.categoryId) {
+      await this.assertCategoryOwned(userId, dto.categoryId);
+    }
+
     const merchantId = dto.merchantName
       ? (await this.upsertMerchant(dto.merchantName)).id
       : undefined;
@@ -43,7 +47,7 @@ export class TransactionsService {
       description: query.search ? { contains: query.search, mode: "insensitive" } : undefined,
       occurredAt: {
         gte: query.from ? new Date(query.from) : undefined,
-        lte: query.to ? new Date(query.to) : undefined,
+        lt: query.to ? addDays(new Date(query.to), 1) : undefined,
       },
     };
 
@@ -77,6 +81,9 @@ export class TransactionsService {
 
   async update(userId: string, id: string, dto: UpdateTransactionDto) {
     await this.findOwnedOrThrow(userId, id);
+    if (dto.categoryId) {
+      await this.assertCategoryOwned(userId, dto.categoryId);
+    }
 
     const merchantId = dto.merchantName
       ? (await this.upsertMerchant(dto.merchantName)).id
@@ -130,6 +137,47 @@ export class TransactionsService {
     };
   }
 
+  async categoryBreakdown(userId: string, month?: string) {
+    const { monthKey, start, end } = resolveMonthRange(month);
+
+    const rows = await this.prisma.transaction.groupBy({
+      by: ["categoryId", "type"],
+      where: { userId, occurredAt: { gte: start, lt: end } },
+      _sum: { amountNu: true },
+    });
+
+    const categoryIds = rows.map((row) => row.categoryId).filter((id): id is string => Boolean(id));
+    const categories = categoryIds.length
+      ? await this.prisma.category.findMany({ where: { id: { in: categoryIds } } })
+      : [];
+    const categoryById = new Map(categories.map((category) => [category.id, category]));
+
+    const items = rows
+      .map((row) => {
+        const category = row.categoryId ? categoryById.get(row.categoryId) : undefined;
+        return {
+          categoryId: row.categoryId ?? "uncategorized",
+          name: category?.name ?? "Uncategorized",
+          icon: category?.icon ?? null,
+          type: row.type,
+          amountNu: (row._sum.amountNu ?? new Prisma.Decimal(0)).toString(),
+        };
+      })
+      .sort((a, b) => Number(b.amountNu) - Number(a.amountNu));
+
+    return { month: monthKey, items };
+  }
+
+  private async assertCategoryOwned(userId: string, categoryId: string) {
+    const category = await this.prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) {
+      throw new NotFoundException("Category not found");
+    }
+    if (category.userId && category.userId !== userId) {
+      throw new ForbiddenException("You cannot use another user's category");
+    }
+  }
+
   private async upsertMerchant(name: string) {
     const normalizedName = name.trim().toLowerCase();
     return this.prisma.merchant.upsert({
@@ -138,6 +186,12 @@ export class TransactionsService {
       create: { name: name.trim(), normalizedName },
     });
   }
+}
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setUTCDate(result.getUTCDate() + days);
+  return result;
 }
 
 function resolveMonthRange(month?: string): { monthKey: string; start: Date; end: Date } {
