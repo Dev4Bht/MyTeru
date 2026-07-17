@@ -9,13 +9,23 @@ export function useBudgetPlan(month?: string) {
   });
 }
 
-function useInvalidateBudgetPlan() {
+// Saving or removing a plan line can create, update, or pause a real
+// RecurringTransaction and materialize an actual Transaction (income posts
+// immediately; auto-post allocations do too) — so every screen showing a
+// balance, recent activity, or the recurring list needs to refetch, not
+// just the plan itself.
+function useInvalidatePlanAndMoney() {
   const queryClient = useQueryClient();
-  return () => void queryClient.invalidateQueries({ queryKey: ["budget-plan"] });
+  return () =>
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["budget-plan"] }),
+      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] }),
+    ]);
 }
 
 export function useSaveBudgetPlan() {
-  const invalidate = useInvalidateBudgetPlan();
+  const invalidate = useInvalidatePlanAndMoney();
   return useMutation({
     mutationFn: (dto: SaveBudgetPlanDto) =>
       apiFetch<BudgetPlanDto>("/budgets/plan", { method: "POST", body: dto }),
@@ -24,7 +34,7 @@ export function useSaveBudgetPlan() {
 }
 
 export function useRemoveBudgetLine() {
-  const invalidate = useInvalidateBudgetPlan();
+  const invalidate = useInvalidatePlanAndMoney();
   return useMutation({
     mutationFn: (budgetId: string) => apiFetch<void>(`/budgets/${budgetId}`, { method: "DELETE" }),
     onSuccess: invalidate,

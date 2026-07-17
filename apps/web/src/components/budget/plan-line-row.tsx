@@ -1,7 +1,7 @@
 "use client";
 
 import { formatNu } from "@druksave/shared";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -75,10 +75,17 @@ export function PlanLineRow({
             className="h-10 pl-10 font-tnum"
           />
         </div>
-        <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-          <Switch checked={line.autoPost} onCheckedChange={(checked) => onChange({ autoPost: checked })} />
-          Auto-post
-        </label>
+        {tone === "income" ? (
+          <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-success">
+            <Check className="h-3.5 w-3.5" />
+            Counts now
+          </span>
+        ) : (
+          <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+            <Switch checked={line.autoPost} onCheckedChange={(checked) => onChange({ autoPost: checked })} />
+            Auto-post monthly
+          </label>
+        )}
       </div>
 
       {hasProgress && (

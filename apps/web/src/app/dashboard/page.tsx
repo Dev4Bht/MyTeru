@@ -87,7 +87,7 @@ export default function DashboardPage() {
                 {hasPlan ? (
                   <>
                     <span className="block text-xs uppercase tracking-wide text-muted-foreground">
-                      {unallocatedNu >= 0 ? "Unallocated this month" : "Over-allocated by"}
+                      {unallocatedNu >= 0 ? "Left to allocate" : "Over-allocated by"}
                     </span>
                     <span
                       className={cn(

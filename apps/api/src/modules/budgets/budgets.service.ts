@@ -167,7 +167,12 @@ export class BudgetsService {
   ): Promise<void> {
     const category = await this.resolveCategory(userId, type, line);
     await this.upsertBudgetRow(userId, category.id, line.amountNu, monthStart, line.budgetId);
-    await this.syncRecurring(userId, type, category.id, line.name, line.amountNu, line.autoPost, monthStart);
+    // Income counts as real money the moment it's confirmed — autoPost only
+    // controls whether an *allocation* (rent, savings, etc.) also posts a
+    // real transaction each month, vs. staying a tracked limit against
+    // whatever the user actually logs.
+    const autoPost = type === "INCOME" ? true : line.autoPost;
+    await this.syncRecurring(userId, type, category.id, line.name, line.amountNu, autoPost, monthStart);
   }
 
   private async resolveCategory(userId: string, type: TransactionType, line: BudgetPlanLineInput) {

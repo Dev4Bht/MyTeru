@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { formatNu } from "@druksave/shared";
 import { Home, ArrowLeftRight, Tags, Repeat, PiggyBank, Target, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authApi } from "@/lib/auth-api";
 import { useAuthStore } from "@/lib/auth-store";
+import { useTransactionSummary } from "@/lib/queries/use-transactions";
 import { JewelMark } from "@/components/brand/jewel-mark";
 
 const NAV_LINKS = [
@@ -20,7 +22,7 @@ const SECONDARY_LINKS = [{ href: "/dashboard/categories", label: "Categories", i
 
 function Logo({ compact }: { compact?: boolean }) {
   return (
-    <Link href="/dashboard" className="flex items-center gap-2.5">
+    <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-soft">
         <JewelMark className="h-4 w-4 text-primary-foreground" />
       </span>
@@ -28,6 +30,38 @@ function Logo({ compact }: { compact?: boolean }) {
         <span className="font-display text-lg font-semibold tracking-tight">DrukSave</span>
       )}
     </Link>
+  );
+}
+
+/**
+ * The one canonical "how much money do I actually have" figure — same
+ * totalIncome - totalExpense computation the Overview page's hero card
+ * uses, surfaced here so it's visible from every screen, not just Overview.
+ */
+function TotalMoneyReadout({ variant }: { variant: "sidebar" | "topbar" }) {
+  const { data: summary } = useTransactionSummary();
+  const isNegative = summary !== undefined && Number(summary.balanceNu) < 0;
+
+  if (variant === "topbar") {
+    return (
+      <div className="flex flex-col items-center leading-tight">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+          Total money
+        </span>
+        <span className={cn("font-tnum text-sm font-semibold", isNegative && "text-destructive")}>
+          {summary ? formatNu(summary.balanceNu) : "—"}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 px-3.5 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total money</p>
+      <p className={cn("font-tnum text-xl font-semibold tracking-tight", isNegative && "text-destructive")}>
+        {summary ? formatNu(summary.balanceNu) : "—"}
+      </p>
+    </div>
   );
 }
 
@@ -47,7 +81,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background md:flex">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card px-5 py-6 md:flex">
         <Logo />
-        <nav className="mt-8 flex flex-1 flex-col gap-1">
+        <div className="mt-6">
+          <TotalMoneyReadout variant="sidebar" />
+        </div>
+        <nav className="flex flex-1 flex-col gap-1">
           {NAV_LINKS.map((link) => {
             const isActive = pathname === link.href;
             const Icon = link.icon;
@@ -106,12 +143,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="safe-top flex items-center justify-between border-b border-border bg-card/80 px-5 py-4 backdrop-blur md:hidden">
-          <Logo />
+        <header className="safe-top flex items-center justify-between gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur md:hidden">
+          <Logo compact />
+          <TotalMoneyReadout variant="topbar" />
           <button
             onClick={handleLogout}
             aria-label="Log out"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-secondary"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:bg-secondary"
           >
             <LogOut className="h-[18px] w-[18px]" />
           </button>

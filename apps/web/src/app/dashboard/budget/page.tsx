@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlanLineDraft, PlanLineRow } from "@/components/budget/plan-line-row";
 import { useBudgetPlan, useRemoveBudgetLine, useSaveBudgetPlan } from "@/lib/queries/use-budgets";
+import { useTransactionSummary } from "@/lib/queries/use-transactions";
 
 const ALLOCATION_PRESETS = [
   { name: "Rent", icon: "🏠" },
@@ -32,6 +33,7 @@ function toDrafts(lines: { budgetId: string; categoryId: string; name: string; i
 
 export default function BudgetPlanPage() {
   const { data: plan, isLoading } = useBudgetPlan();
+  const { data: summary } = useTransactionSummary();
   const saveMutation = useSaveBudgetPlan();
   const removeLine = useRemoveBudgetLine();
 
@@ -101,19 +103,37 @@ export default function BudgetPlanPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight">Monthly plan</h1>
         <p className="text-sm text-muted-foreground">
-          Set your income once — we&apos;ll draw every allocation from it and post the fixed ones for you.
+          Confirm your income and it counts immediately. Allocate what&apos;s left, and we&apos;ll post the fixed
+          ones for you.
         </p>
       </div>
 
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-accent p-6 text-primary-foreground shadow-lift">
         <div className="pattern-clouds pointer-events-none absolute inset-0 opacity-40" aria-hidden="true" />
         <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-widest text-primary-foreground/70">
-            {unallocated >= 0 ? "Unallocated" : "Over-allocated by"}
-          </p>
-          <p className="mt-1 font-tnum font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            {formatNu(Math.abs(unallocated))}
-          </p>
+          <div className="flex items-center justify-between border-b border-white/20 pb-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-primary-foreground/70">
+                Total money you have
+              </p>
+              <p className="mt-0.5 font-tnum text-2xl font-semibold tracking-tight">
+                {summary ? formatNu(summary.balanceNu) : "—"}
+              </p>
+            </div>
+            <span className="rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-medium text-primary-foreground/80">
+              Real, right now
+            </span>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-primary-foreground/70">
+              {unallocated >= 0 ? "Left to allocate" : "Over-allocated by"}
+            </p>
+            <p className="mt-1 font-tnum font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+              {formatNu(Math.abs(unallocated))}
+            </p>
+          </div>
+
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-white/15 px-4 py-3 backdrop-blur-sm">
               <p className="text-xs uppercase tracking-wide text-primary-foreground/70">Planned income</p>
@@ -130,7 +150,9 @@ export default function BudgetPlanPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Income</CardTitle>
-          <CardDescription>Salary and any other regular income, all drawn from the same pool.</CardDescription>
+          <CardDescription>
+            Fixed monthly salary and any other source — saving one counts it right away and repeats every month.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {income.map((row, i) => (
