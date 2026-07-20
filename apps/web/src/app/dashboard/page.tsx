@@ -26,7 +26,8 @@ export default function DashboardPage() {
   const { data: goals } = useGoals();
 
   const firstName = user?.fullName?.split(" ")[0];
-  const hasPlan = plan && (plan.income.length > 0 || plan.allocations.length > 0);
+  const hasIncome = Boolean(plan && plan.income.length > 0);
+  const hasAllocationsOnly = Boolean(plan && !hasIncome && plan.allocations.length > 0);
   const unallocatedNu = plan ? Number(plan.totals.unallocatedNu) : 0;
 
   const topExpenses = (breakdown?.items ?? [])
@@ -84,7 +85,7 @@ export default function DashboardPage() {
                 <PiggyBank className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                {hasPlan ? (
+                {hasIncome ? (
                   <>
                     <span className="block text-xs uppercase tracking-wide text-muted-foreground">
                       {unallocatedNu >= 0 ? "Left to allocate" : "Over-allocated by"}
@@ -96,6 +97,13 @@ export default function DashboardPage() {
                       )}
                     >
                       {formatNu(Math.abs(unallocatedNu))}
+                    </span>
+                  </>
+                ) : hasAllocationsOnly ? (
+                  <>
+                    <span className="block text-sm font-medium">Add your income</span>
+                    <span className="block text-xs text-muted-foreground">
+                      You&apos;ve planned spending but no income yet.
                     </span>
                   </>
                 ) : (

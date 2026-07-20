@@ -39,6 +39,8 @@ export default function BudgetPlanPage() {
 
   const [income, setIncome] = useState<PlanLineDraft[]>([]);
   const [allocations, setAllocations] = useState<PlanLineDraft[]>([]);
+  const [incomeErrors, setIncomeErrors] = useState<Record<number, string>>({});
+  const [allocationErrors, setAllocationErrors] = useState<Record<number, string>>({});
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -59,9 +61,18 @@ export default function BudgetPlanPage() {
 
   const updateRow = (
     setter: React.Dispatch<React.SetStateAction<PlanLineDraft[]>>,
+    errorSetter: React.Dispatch<React.SetStateAction<Record<number, string>>>,
     index: number,
     patch: Partial<PlanLineDraft>,
-  ) => setter((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  ) => {
+    setter((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    errorSetter((errors) => {
+      if (!(index in errors)) return errors;
+      const next = { ...errors };
+      delete next[index];
+      return next;
+    });
+  };
 
   const removeRow = (
     setter: React.Dispatch<React.SetStateAction<PlanLineDraft[]>>,
@@ -72,26 +83,59 @@ export default function BudgetPlanPage() {
     setter((rows) => rows.filter((_, i) => i !== index));
   };
 
+  /**
+   * A blank, untouched row is silently dropped — that's just an unused
+   * template. A row with a name but no amount (or vice versa) is not
+   * dropped silently: that's very likely a real entry the user meant to
+   * save that would otherwise vanish with zero explanation.
+   */
+  const validateRows = (rows: PlanLineDraft[]) => {
+    const errors: Record<number, string> = {};
+    const valid: PlanLineDraft[] = [];
+    rows.forEach((row, i) => {
+      const hasName = row.name.trim().length > 0;
+      const hasAmount = row.amountNu.trim().length > 0 && Number(row.amountNu) > 0;
+      if (!hasName && !hasAmount) return;
+      if (!hasName) {
+        errors[i] = "Give it a name";
+      } else if (!hasAmount) {
+        errors[i] = "Enter an amount";
+      } else {
+        valid.push(row);
+      }
+    });
+    return { valid, errors };
+  };
+
   const handleSave = async () => {
+    const incomeResult = validateRows(income);
+    const allocationResult = validateRows(allocations);
+    setIncomeErrors(incomeResult.errors);
+    setAllocationErrors(allocationResult.errors);
+
+    if (Object.keys(incomeResult.errors).length > 0 || Object.keys(allocationResult.errors).length > 0) {
+      return;
+    }
+
     const toPayload = (rows: PlanLineDraft[]) =>
-      rows
-        .filter((r) => r.name.trim() && Number(r.amountNu) > 0)
-        .map((r) => ({
-          budgetId: r.budgetId,
-          categoryId: r.categoryId,
-          name: r.name.trim(),
-          icon: r.icon,
-          amountNu: Number(r.amountNu),
-          autoPost: r.autoPost,
-        }));
+      rows.map((r) => ({
+        budgetId: r.budgetId,
+        categoryId: r.categoryId,
+        name: r.name.trim(),
+        icon: r.icon,
+        amountNu: Number(r.amountNu),
+        autoPost: r.autoPost,
+      }));
 
     const result = await saveMutation.mutateAsync({
-      income: toPayload(income),
-      allocations: toPayload(allocations),
+      income: toPayload(incomeResult.valid),
+      allocations: toPayload(allocationResult.valid),
     });
 
     setIncome(toDrafts(result.income));
     setAllocations(toDrafts(result.allocations));
+    setIncomeErrors({});
+    setAllocationErrors({});
   };
 
   if (isLoading) {
@@ -127,10 +171,10 @@ export default function BudgetPlanPage() {
 
           <div className="mt-4">
             <p className="text-xs font-medium uppercase tracking-widest text-primary-foreground/70">
-              {unallocated >= 0 ? "Left to allocate" : "Over-allocated by"}
+              {plannedIncome === 0 ? "Add income to begin" : unallocated >= 0 ? "Left to allocate" : "Over-allocated by"}
             </p>
             <p className="mt-1 font-tnum font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              {formatNu(Math.abs(unallocated))}
+              {plannedIncome === 0 ? "—" : formatNu(Math.abs(unallocated))}
             </p>
           </div>
 
@@ -160,7 +204,8 @@ export default function BudgetPlanPage() {
               key={row.budgetId ?? `new-income-${i}`}
               line={row}
               tone="income"
-              onChange={(patch) => updateRow(setIncome, i, patch)}
+              error={incomeErrors[i]}
+              onChange={(patch) => updateRow(setIncome, setIncomeErrors, i, patch)}
               onRemove={() => removeRow(setIncome, i, row)}
             />
           ))}
@@ -212,7 +257,8 @@ export default function BudgetPlanPage() {
               key={row.budgetId ?? `new-allocation-${i}`}
               line={row}
               tone="expense"
-              onChange={(patch) => updateRow(setAllocations, i, patch)}
+              error={allocationErrors[i]}
+              onChange={(patch) => updateRow(setAllocations, setAllocationErrors, i, patch)}
               onRemove={() => removeRow(setAllocations, i, row)}
             />
           ))}

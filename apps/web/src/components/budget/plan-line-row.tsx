@@ -19,11 +19,13 @@ export interface PlanLineDraft {
 export function PlanLineRow({
   line,
   tone,
+  error,
   onChange,
   onRemove,
 }: {
   line: PlanLineDraft;
   tone: "income" | "expense";
+  error?: string;
   onChange: (patch: Partial<PlanLineDraft>) => void;
   onRemove: () => void;
 }) {
@@ -34,7 +36,12 @@ export function PlanLineRow({
   const isOver = tone === "expense" && hasProgress && actual! > planned;
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3.5">
+    <div
+      className={cn(
+        "flex flex-col gap-2.5 rounded-2xl border bg-card p-3.5",
+        error ? "border-destructive" : "border-border",
+      )}
+    >
       <div className="flex items-center gap-2.5">
         <span
           className={cn(
@@ -87,6 +94,8 @@ export function PlanLineRow({
           </label>
         )}
       </div>
+
+      {error && <p className="pl-11 text-xs font-medium text-destructive">{error}</p>}
 
       {hasProgress && (
         <div className="pl-11">
